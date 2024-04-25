@@ -1,0 +1,84 @@
+group 'com.orbweb.m2m_plugin'
+version '1.0-SNAPSHOT'
+
+buildscript {
+    ext.kotlin_version = '1.7.10'
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:7.3.0'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+//rootProject.allprojects {
+//    repositories {
+//        flatDir {
+//            dirs project(':m2m_plugin').file('aars')
+//        }
+//    }
+//}
+
+android {
+    if (project.android.hasProperty("namespace")) {
+        namespace 'com.orbweb.m2m_plugin'
+    }
+
+    //compileSdkVersion 33
+    compileSdk 33
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+        test.java.srcDirs += 'src/test/kotlin'
+    }
+
+    defaultConfig {
+        minSdkVersion 24
+    }
+
+    dependencies {
+        testImplementation 'org.jetbrains.kotlin:kotlin-test'
+        testImplementation 'org.mockito:mockito-core:5.0.0'
+
+        //compileOnly fileTree(includes: [".aar"],dir:"libs")
+        //compileOnly files('libs/libm2mkit-release.aar')
+        //implementation files('libs/libm2mkit-release.aar')
+
+        //implementation(name: 'libm2mkit-release' , ext : 'aar')
+        implementation 'io.github.orbweb:libm2mkit:1.0.1'
+    }
+
+    testOptions {
+        unitTests.all {
+            useJUnitPlatform()
+
+            testLogging {
+               events "passed", "skipped", "failed", "standardOut", "standardError"
+               outputs.upToDateWhen {false}
+               showStandardStreams = true
+            }
+        }
+    }
+}

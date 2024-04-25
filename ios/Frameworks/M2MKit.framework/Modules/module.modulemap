@@ -1,0 +1,6 @@
+framework module M2MKit {
+  umbrella header "M2MKit.h"
+
+  export *
+  module * { export * }
+}
