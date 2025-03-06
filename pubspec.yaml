@@ -1,6 +1,6 @@
 name: m2m_plugin
 description: "Orbweb m2m connect plugin project."
-version: 1.0.2+1
+version: 1.0.3+2
 homepage: "https://github.com/orbweb/flutter_m2m_plugin"
 
 environment:

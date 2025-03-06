@@ -61,12 +61,6 @@ android {
     dependencies {
         testImplementation 'org.jetbrains.kotlin:kotlin-test'
         testImplementation 'org.mockito:mockito-core:5.0.0'
-
-        //compileOnly fileTree(includes: [".aar"],dir:"libs")
-        //compileOnly files('libs/libm2mkit-release.aar')
-        //implementation files('libs/libm2mkit-release.aar')
-
-        //implementation(name: 'libm2mkit-release' , ext : 'aar')
         implementation 'io.github.orbweb:libm2mkit:1.0.1'
     }
 
