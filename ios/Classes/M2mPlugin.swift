@@ -2,21 +2,25 @@ import Flutter
 import UIKit
 import M2MKit
 
-public class M2mPlugin: NSObject, FlutterPlugin{
+public class M2mPlugin: NSObject, FlutterPlugin {
+    var audioTalk: AudioTalk?
+    let eventChannel: M2MEventChannel
 
+    override init() {
+        self.eventChannel = M2MEventChannel()
+        super.init()
+    }
 
-    
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "com.orbweb.m2m_plugin", binaryMessenger: registrar.messenger())
-        let instance : M2mPlugin = M2mPlugin()
+        let instance = M2mPlugin()
         registrar.addMethodCallDelegate(instance, channel: channel)
 
-        let eventChannel : M2MEventChannel = M2MEventChannel.init()
-        eventChannel.setupEventChannel(name: "com.orbweb.demo/event", messenger: registrar.messenger())
+        instance.eventChannel.setupEventChannel(name: "com.orbweb.demo/event", messenger: registrar.messenger())
     }
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-        let args = call.arguments as? Dictionary<String, Any>
+        //let args = call.arguments as? Dictionary<String, Any>
 
         switch call.method {
         case "getPlatformVersion":
@@ -36,18 +40,21 @@ public class M2mPlugin: NSObject, FlutterPlugin{
                     result(FlutterError.init(code: "error", message: "rdz path nil", details: nil))
         }
         case "uninitializedSDK":
-            result(OBDeviceManager.uninitializeSDK())
+            OBDeviceManager.uninitializeSDK()
+            result(nil)
         case "setupLog":
             if let args = call.arguments as? Dictionary<String, Any>,
                let value = args["value"] as? Bool {
-                    result(OBDeviceManager.setupLog(value))
+                    OBDeviceManager.setupLog(value)
+                    result(nil)
                 } else {
                     result(FlutterError.init(code: "error", message: "value nil", details: nil))
                 }
         case "setUsedDomainName":
             if let args = call.arguments as? Dictionary<String, Any>,
                let value = args["value"] as? Bool {
-                    result(OBDeviceManager.setUsedDomainName(value))
+                    OBDeviceManager.setUsedDomainName(value)
+                    result(nil)
                 } else {
                     result(FlutterError.init(code: "error", message: "value nil", details: nil))
                 }
@@ -61,6 +68,14 @@ public class M2mPlugin: NSObject, FlutterPlugin{
                 } else {
                     result(FlutterError.init(code: "error", message: "value nil", details: nil))
                 }
+        case "reconnect":
+            if let args = call.arguments as? Dictionary<String, Any>,
+                            let sid = args["sid"] as? String {
+                                reConnect(sid: sid)
+                                result(nil)
+                            } else {
+                                result(FlutterError.init(code: "error", message: "value nil", details: nil))
+                            }
         case "close":
             if let args = call.arguments as? Dictionary<String, Any>,
                 let sid = args["sid"] as? String {
@@ -80,6 +95,19 @@ public class M2mPlugin: NSObject, FlutterPlugin{
                 } else {
                     result(FlutterError.init(code: "error", message: "value nil", details: nil))
                 }
+        case "initAudioTalk":
+           if let args = call.arguments as? Dictionary<String, Any>,
+                let audioCode = args["audioCode"] as? Int,
+                let audioFormat = args["audioFormat"] as? Int,
+                let audioRate = args["audioRate"] as? Int {
+                let ret = initAudioTalk(audioType: audioCode, audioFormat: audioFormat, audioRate: audioRate)
+                    result(ret)
+                } else {
+                    result(FlutterError.init(code: "error", message: "value nil", details: nil))
+                }
+        case "closeAudio":
+            closeAudio();
+           result(nil)
         default:
             result(FlutterMethodNotImplemented)
         }
@@ -96,7 +124,8 @@ public class M2mPlugin: NSObject, FlutterPlugin{
         var manager : OBDeviceManager? = getManager(sid: sid)
         
         if (manager == nil) {
-            if (account != nil && password != nil && account?.count > 0 && password?.count > 0) {
+
+            if (account != nil && password != nil && account!.count > 0 && password!.count > 0) {
                 manager = OBDeviceManager(sid: sid,
                                                       account: account,
                                                       password: password,
@@ -109,7 +138,7 @@ public class M2mPlugin: NSObject, FlutterPlugin{
             mP2PList[sid] = manager
         }
         
-        var type = manager?.getP2PType() ?? -1
+        let type = manager?.getP2PType() ?? -1
         if (type < 0) {
             DispatchQueue.main.async {
                 manager?.onNetworkChange(M2MNetworkStatus.NetworkStatusReachableViaWiFi)
@@ -120,9 +149,9 @@ public class M2mPlugin: NSObject, FlutterPlugin{
     }
 
     private func reConnect(sid: String) {
-        var manager : OBDeviceManager? = getManager(sid: sid)
+        let manager : OBDeviceManager? = getManager(sid: sid)
         if (manager != nil) {
-            var type = manager?.getP2PType() ?? -1
+            let type = manager?.getP2PType() ?? -1
             if (type < 0) {
                 DispatchQueue.main.async {
                     manager?.onNetworkChange(M2MNetworkStatus.NetworkStatusReachableViaWiFi)
@@ -132,7 +161,7 @@ public class M2mPlugin: NSObject, FlutterPlugin{
     }
 
     private func close(sid: String) {
-        var manager : OBDeviceManager? = getManager(sid: sid)
+        let manager : OBDeviceManager? = getManager(sid: sid)
         
         if (manager != nil) {
             manager!.release();
@@ -148,14 +177,53 @@ public class M2mPlugin: NSObject, FlutterPlugin{
         
         mP2PList.removeAll();
     }
-    
+
+    private func getConnectType(sid: String) -> Int {
+        let manager : OBDeviceManager? = getManager(sid: sid)
+        if (manager != nil) {
+            return manager!.getP2PType()
+        }
+
+        return -1
+    }
+
     private func getPort(sid: String, from :Int) -> Int{
-        var manager : OBDeviceManager? = getManager(sid: sid)
+        let manager : OBDeviceManager? = getManager(sid: sid)
         if (manager != nil) {
             return manager!.getLocalPort(from)
         }
         
         return -1
+    }
+
+    private func sendEvent(key: String, data: String) {
+        let payload: [String: String] = ["key": key, "audioData": data]
+
+        guard
+            let jsonData = try? JSONSerialization.data(withJSONObject: payload),
+            let jsonString = String(data: jsonData, encoding: .utf8)
+        else {
+            print("🔴 Failed to serialize event: \(key)")
+            return
+        }
+
+        eventChannel.events?(jsonString)
+    }
+
+    private func initAudioTalk(audioType: Int, audioFormat: Int, audioRate: Int) -> Int {
+        if (audioTalk == nil) {
+            audioTalk = AudioTalk()
+            audioTalk?.onRecordData = { data in
+                let base64 = data.base64EncodedString()
+                self.sendEvent(key: "audioData", data: base64)
+            }
+        }
+
+        return audioTalk!.initAudioTalk(audioCode: audioType, audioFormat: audioFormat, audioRate: Double(audioRate))
+    }
+
+    private func closeAudio() -> Void {
+        audioTalk?.closeAudio()
     }
 }
 
@@ -187,30 +255,30 @@ public class M2MEventChannel :NSObject, FlutterStreamHandler {
     }
 
     @objc func onChangeNotification(notification: Notification) {
-        let userInfo = notification.userInfo
-        if (userInfo != nil) {
-
-            let sid = userInfo!["KEY_SID"] as! String;
-            let type = userInfo!["KEY_TYPE"] as! Int;
-            let code = userInfo!["KEY_ERROR_CODE"] as! Int;
-            var newData = [String : String]();
-            newData = ["sid": sid, "p2pType": String(type), "errorCode": String(code)];
-
-            guard let jsonData = try? JSONSerialization.data(withJSONObject: newData as Any) else {
-                return ;
-            }
-
-            guard let jsonString = String(data: jsonData, encoding: .utf8) else {
-                return ;
-            }
-
-            //print(jsonString);
-
-            if (self.events != nil) {
-                self.events!(jsonString);
-            }
-
+        guard
+            let userInfo = notification.userInfo,
+            let sid = userInfo["KEY_SID"] as? String,
+            let type = userInfo["KEY_TYPE"] as? Int,
+            let code = userInfo["KEY_ERROR_CODE"] as? Int
+        else {
+            return
         }
-    }
-}
 
+        let newData: [String: String] = [
+            "key": "m2m_status_change",
+            "sid": sid,
+            "p2pType": String(type),
+            "errorCode": String(code)
+        ]
+
+        guard
+            let jsonData = try? JSONSerialization.data(withJSONObject: newData),
+            let jsonString = String(data: jsonData, encoding: .utf8)
+        else {
+            return
+        }
+
+        events?(jsonString)
+    }
+
+}

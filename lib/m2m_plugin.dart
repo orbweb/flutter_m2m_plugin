@@ -9,79 +9,128 @@ const event = EventChannel('com.orbweb.demo/event');
 class M2mPlugin {
 
   late StreamSubscription _streamSubscription;
-  late Function(dynamic data)? mListen;
+  late Function(dynamic data)? _mListen;
 
+  final Completer<void> _completer;
+
+  M2mPlugin() : _completer = Completer(){
+
+  }
+
+  /// Get M2M Plugin version
   Future<String?> getPlatformVersion() {
     return M2mPluginPlatform.instance.getPlatformVersion();
   }
 
+  /// Check M2M Plugin status
   Future<bool> isReady() {
     return M2mPluginPlatform.instance.isReady();
   }
 
+  /// Initialize M2M Plugin with standard
   Future<bool> initializeSDK() {
-    initValue();
+    _initValue();
     return M2mPluginPlatform.instance.initializeSDK();
   }
 
+  /// Initialize M2M Plugin with china
   Future<bool> initializeWithChina() {
-    initValue();
+    _initValue();
     return M2mPluginPlatform.instance.initializeWithChina();
   }
 
+  /// Initialize M2M Plugin by manual
+  /// Please enter the [rdz] domain name
   Future<bool> initializeWithRDZ(String rdz) {
-    initValue();
+    _initValue();
     return M2mPluginPlatform.instance.initializeWithRDZ(rdz);
   }
 
+  /// Uninitialized M2M Plugin
   Future<bool> uninitializedSDK() {
-    release();
+    _release();
     return M2mPluginPlatform.instance.uninitializedSDK();
   }
 
-  Future<void> setupLog(bool value) {
+  /// Enable/Disable debug message
+  Future<void> setupLog(bool value) async {
     return M2mPluginPlatform.instance.setupLog(value);
   }
 
-  Future<void> setUsedDomainName(bool value) {
+  /// Enable/Disable Domain name resolution
+  Future<void> setUsedDomainName(bool value) async{
     return M2mPluginPlatform.instance.setUsedDomainName(value);
   }
 
-  Future<bool> create(String sid, String account, String password, int timeout) {
+  /// Create m2m connection by [sid]
+  /// m2mPlugin.create('sid', 'user', 'password', 3000);
+  Future<bool> create(String sid, String account, String password, int timeout) async{
+    await _completer.future;
     return M2mPluginPlatform.instance.create(sid, account, password, timeout);
   }
 
-  Future<void> reConnect(String sid) {
+  /// Reconnect by [sid]
+  Future<void> reConnect(String sid) async {
+    await _completer.future;
     return M2mPluginPlatform.instance.reConnect(sid);
   }
 
-  Future<void> close(String sid) {
+  /// Close connection by [sid]
+  Future<void> close(String sid) async {
+    await _completer.future;
     return M2mPluginPlatform.instance.close(sid);
   }
-  
-  Future<void> closeAll() {
+
+  /// Close all connection
+  Future<void> closeAll() async {
+    await _completer.future;
     return M2mPluginPlatform.instance.closeAll();
   }
 
-  Future<int> getPort(String sid, int from) {
+  Future<int> getConnectType(String sid) async {
+    await _completer.future;
+    return M2mPluginPlatform.instance.getConnectType(sid);
+  }
+
+  /// Get mapping port by [sid]
+  /// m2mPlug.getPort('sid', 554);
+  Future<int> getPort(String sid, int from) async {
+    await _completer.future;
     return M2mPluginPlatform.instance.getPort(sid, from);
   }
 
-  void setListener(Function(dynamic data) listen) {
-    mListen = listen;
+  /// Set M2M connection status listener
+  void setListener(Function(dynamic data)? listen) {
+    _mListen = listen;
   }
 
-  void initValue() {
+  /// setup audio talk
+  /// [audioCode] pcm :0 ,aLaw : 1 ,uLaw : 2
+  /// [audioFormat] 16bit :2, 8bit :3
+  /// [audioRate] 8000 ~ 14400
+  Future<int> initAudioTalk(int audioCode, int audioFormat, int audioRate) async{
+    await _completer.future;
+    return M2mPluginPlatform.instance.initAudioTalk(audioCode, audioFormat, audioRate);
+  }
+
+  /// stop audio talk
+  Future<void> closeAudio() async{
+    await _completer.future;
+    return M2mPluginPlatform.instance.closeAudio();
+  }
+
+  void _initValue() {
     _streamSubscription = event.receiveBroadcastStream().listen((event) {
-      if (mListen != null) {
-        mListen!(event);
+      if (_mListen != null) {
+        _mListen!(event);
       }
     });
+    _completer.complete();
   }
 
-  void release() {
+  void _release() {
     _streamSubscription.cancel();
-    mListen = null;
+    _mListen = null;
   }
 
 }

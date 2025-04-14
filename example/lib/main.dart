@@ -29,7 +29,7 @@ class AppPage extends StatelessWidget {
 
 
   void startDemo(BuildContext context) {
-    debugPrint('startDemo !!!!');
+
     Navigator.push(context,
         MaterialPageRoute<void>(builder: (BuildContext context) => const Demo()));
   }

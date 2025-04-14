@@ -71,7 +71,19 @@ abstract class M2mPluginPlatform extends PlatformInterface {
     throw UnimplementedError('closeAll() has not been implemented.');
   }
 
+  Future<int> getConnectType(String sid) {
+    throw UnimplementedError('getConnectType() has not been implemented.');
+  }
+
   Future<int> getPort(String sid, int from) {
     throw UnimplementedError('getPort() has not been implemented.');
+  }
+
+  Future<int> initAudioTalk(int audioCode, int audioFormat, int audioRate) {
+    throw UnimplementedError('initAudioTalk() has not been implemented.');
+  }
+
+  Future<void> closeAudio() {
+    throw UnimplementedError('closeAudio() has not been implemented.');
   }
 }

@@ -1,6 +1,7 @@
 package com.orbweb.m2m_plugin
 
 import android.annotation.SuppressLint
+import android.annotation.TargetApi
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -17,6 +18,9 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import org.json.JSONObject
+import com.orbweb.m2m_plugin.AudioTalk
+import java.util.Base64
+
 
 
 /** M2mPlugin */
@@ -34,6 +38,7 @@ class M2mPlugin: FlutterPlugin, MethodCallHandler , EventChannel.StreamHandler {
   private var mP2PList : HashMap<String, M2MDeviceManager> = HashMap()
 
   private var mM2MStatusReceiver : M2MStatusReceiver? = null
+  private var mAudioTalk: AudioTalk? = null
 
   override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, "com.orbweb.m2m_plugin")
@@ -97,10 +102,26 @@ class M2mPlugin: FlutterPlugin, MethodCallHandler , EventChannel.StreamHandler {
     else if (call.method == "closeAll") {
       result.success(closeAll())
     }
+    else if (call.method == "getConnectType") {
+      val sid: String = call.argument("sid")!!
+      result.success(getConnectType(sid))
+    }
     else if (call.method == "getPort") {
       val sid: String = call.argument("sid")!!
       val from :Int = call.argument("from")!!
       result.success(getPort(sid, from))
+    }
+    else if (call.method == "initAudioTalk") {
+      val audioCode: Int = call.argument("audioCode")!!
+      val audioFormat: Int = call.argument("audioFormat")!!
+      val audioRate: Int = call.argument("audioRate")!!
+      val audioSessionId: Int = initAudioTalk(audioCode, audioFormat, audioRate)
+
+      result.success(audioSessionId)
+    }
+    else if (call.method == "closeAudio") {
+      closeAudioTalk()
+      result.success(null)
     }
     else {
       result.notImplemented()
@@ -123,7 +144,7 @@ class M2mPlugin: FlutterPlugin, MethodCallHandler , EventChannel.StreamHandler {
     var manager : M2MDeviceManager? = getManager(sid)
 
     if (manager == null) {
-      if (account != null && password != null && account.length>0 && password.length>0) {
+      if (account != null && password != null && account.isNotEmpty() && password.isNotEmpty()) {
         manager = M2MDeviceManager(this.context, sid, account, password, timeout)
       } else {
         manager = M2MDeviceManager(this.context, sid, timeout)
@@ -170,17 +191,57 @@ class M2mPlugin: FlutterPlugin, MethodCallHandler , EventChannel.StreamHandler {
 
     mP2PList.clear();
     
-    return find;
+    return find
     
+  }
+
+  private fun getConnectType(sid:String) : Int{
+    val manager : M2MDeviceManager? = getManager(sid)
+    var type = -1
+    if (manager != null) {
+      type = manager.getP2PType()
+    }
+
+    return type
   }
 
   private fun getPort(sid:String, from: Int) : Int {
     val manager : M2MDeviceManager? = getManager(sid)
+    var port :Int = -1
     if (manager != null) {
-      return manager.getLocalPort(from)
+      port = manager.getLocalPort(from)
     }
-    return -1
+    return port
   }
+
+  private fun initAudioTalk(audioType: Int, audioFormat: Int, audioRate: Int) : Int {
+    if (mAudioTalk == null) {
+      mAudioTalk = AudioTalk()
+        .setCodec(audioType)
+        .setFormat(audioFormat)
+        .setSampleRate(audioRate)
+      mAudioTalk?.init()
+      mAudioTalk?.setRecordAudioListener { audioData ->
+        // handle recorded audio data
+        var base64 = audioData.toBase64()
+
+        val json = JSONObject();
+        json.put("key", "audioData")
+        json.put("audioData", base64)
+        this.eventSink?.success(json.toString())
+      }
+    }
+
+    return mAudioTalk?.audioSessionId ?: -1
+  }
+
+  private fun closeAudioTalk() {
+    mAudioTalk?.closeAudio()
+  }
+
+  @TargetApi(Build.VERSION_CODES.O)
+  fun ByteArray.toBase64(): String =
+    String(Base64.getEncoder().encode(this))
 
   @SuppressLint("UnspecifiedRegisterReceiverFlag")
   override fun onListen(arguments: Any?, events: EventSink?) {
@@ -219,6 +280,7 @@ class M2MStatusReceiver(private var event : EventSink?) : BroadcastReceiver() {
       val errorCode = bundle?.getInt(M2Mintent.BROADCAST_KEY_ERROR_CODE, 0)
 
       val json = JSONObject()
+      json.put("key", "m2m_status_change")
       json.put("sid", sid)
       json.put("p2pType", p2pType.toString())
       json.put("errorCode", errorCode.toString())

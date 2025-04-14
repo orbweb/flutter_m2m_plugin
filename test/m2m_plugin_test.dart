@@ -77,8 +77,23 @@ class MockM2mPluginPlatform
   }
 
   @override
+  Future<int> getConnectType(String sid) {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<int> getPort(String sid, int from) {
     // TODO: implement getPort
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<int> initAudioTalk(int audioCode, int audioFormat, int audioRate) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> closeAudio() {
     throw UnimplementedError();
   }
 }

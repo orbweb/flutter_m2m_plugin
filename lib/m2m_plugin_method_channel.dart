@@ -7,7 +7,6 @@ import 'm2m_plugin_platform_interface.dart';
 class MethodChannelM2mPlugin extends M2mPluginPlatform {
   /// The method channel used to interact with the native platform.
 
-  @visibleForTesting
   final methodChannel = const MethodChannel('com.orbweb.m2m_plugin');
 
   @override
@@ -33,7 +32,7 @@ class MethodChannelM2mPlugin extends M2mPluginPlatform {
 
   @override
   Future<bool> initializeWithRDZ(String rdz) async {
-    return await methodChannel.invokeMethod('initializeWithChina', {'rdz': rdz});
+    return await methodChannel.invokeMethod('initializeWithRDZ', {'rdz': rdz});
   }
 
   @override
@@ -71,9 +70,23 @@ class MethodChannelM2mPlugin extends M2mPluginPlatform {
     try {
       await methodChannel.invokeMethod('closeAll');
     } on PlatformException catch (e) {
-      debugPrint("closeAll 2 Failed to : '${e.message}'.");
+      debugPrint("closeAll Failed to : '${e.message}'.");
     }
 
+  }
+
+  @override
+  Future<int> getConnectType(String sid) async{
+    int type = -1;
+
+    try {
+      var value = await methodChannel.invokeMethod('getConnectType', {'sid': sid});
+      type = value;
+    } on PlatformException catch (e) {
+      debugPrint("getConnectType Failed to : '${e.message}'.");
+    }
+
+    return type;
   }
 
   @override
@@ -82,11 +95,39 @@ class MethodChannelM2mPlugin extends M2mPluginPlatform {
 
     try {
       var value = await methodChannel.invokeMethod('getPort', {'sid': sid, 'from': from});
-      port = value;//int.parse(value);
+      port = value;
     } on PlatformException catch (e) {
       debugPrint("getPort Failed to : '${e.message}'.");
     }
 
     return port;
+  }
+  
+  @override
+  Future<int> initAudioTalk(int audioCode, int audioFormat, int audioRate) async {
+    int sessionId = -1;
+    try {
+      var result = await methodChannel.invokeMethod('initAudioTalk',
+          {'audioCode': audioCode,
+          'audioFormat': audioFormat,
+          'audioRate': audioRate}) ;
+
+      sessionId = result;
+
+    } on PlatformException catch (e) {
+      debugPrint("initAudioTalk Failed to : '${e.message}'.");
+    }
+
+    return sessionId;
+  }
+
+  @override
+  Future<void> closeAudio() async{
+
+    try {
+      await methodChannel.invokeMethod('closeAudio');
+    } on PlatformException catch (e) {
+      debugPrint("closeAudio Failed to : '${e.message}'.");
+    }
   }
 }

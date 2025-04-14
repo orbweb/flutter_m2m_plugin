@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:m2m_plugin/m2m_plugin.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class Demo extends StatefulWidget {
   const Demo({super.key});
@@ -18,6 +19,9 @@ class DemoState extends State<Demo> {
   final _m2mPlugin = M2mPlugin();
 
   void init() async{
+
+    await [Permission.microphone].request();
+
     String platformVersion;
     try {
       platformVersion =
@@ -33,11 +37,17 @@ class DemoState extends State<Demo> {
       await _m2mPlugin.setupLog(false);
       await _m2mPlugin.initializeSDK();
 
-      String sid = "input host sid";
-      String account = "input host account";
-      String password = "input host password";
 
-      await _m2mPlugin.create(sid, account, password, 3000);
+      // String sid = "B5Y4E4CQSUS69V52QAAR";
+      // String account = "user";
+      // String password = "password";
+      //
+      // await _m2mPlugin.create(sid, account, password, 3000);
+
+      var sessionId =  await _m2mPlugin.initAudioTalk(2, 2, 8000);
+
+      debugPrint('sessionId = $sessionId');
+      
     } on PlatformException catch (e){
       debugPrint("create Failed to : '${e.message}'.");
     }
@@ -50,6 +60,13 @@ class DemoState extends State<Demo> {
   }
 
   void uninitialized() async {
+
+    try {
+      await _m2mPlugin.closeAudio();
+    } on PlatformException catch (e) {
+      debugPrint("closeAudio Failed to : '${e.message}'.");
+    }
+
     try {
       await _m2mPlugin.closeAll();
 
@@ -67,20 +84,33 @@ class DemoState extends State<Demo> {
 
   }
 
-  void getPort(String sid, int from) async {
-    _m2mPlugin.getPort(sid, from).then((value) => debugPrint('getPort $from -> $value'));
+  Future<int> getPort(String sid, int from) async {
+    return _m2mPlugin.getPort(sid, from);
   }
 
   void onListen(dynamic event) {
     debugPrint('get event $event');
     var data = jsonDecode(event);
-    String sid = data['sid'];
-    int p2pType =  int.parse(data['p2pType']);
+    String key = data['key'];
+    if (key == 'm2m_status_change') {
+      String sid = data['sid'];
+      int p2pType =  int.parse(data['p2pType']);
 
-    debugPrint('event $sid -> $p2pType');
-    if (p2pType > 0) {
-      getPort(sid, 554);
+      debugPrint('event $sid -> $p2pType');
+      if (p2pType > 0) {
+        getPort(sid, 80).then((mapPort) {
+          //TODO implement http client. ex: http://127.0.0.1:{mapPort}/your_api
+
+        });
+      }
+    } else if (key == 'audioData') {
+      String base64 = data['audioData'];
+      var audioData = const Base64Decoder().convert(base64);
+      //TODO send audio data
     }
+
+
+
   }
 
   @override

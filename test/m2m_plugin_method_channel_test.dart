@@ -6,7 +6,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   MethodChannelM2mPlugin platform = MethodChannelM2mPlugin();
-  const MethodChannel channel = MethodChannel('m2m_plugin');
+  const MethodChannel channel = MethodChannel('com.orbweb.m2m_plugin');
 
   setUp(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(

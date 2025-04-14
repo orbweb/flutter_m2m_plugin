@@ -2,14 +2,14 @@ group 'com.orbweb.m2m_plugin'
 version '1.0-SNAPSHOT'
 
 buildscript {
-    ext.kotlin_version = '1.7.10'
+    ext.kotlin_version = '1.9.0'
     repositories {
         google()
         mavenCentral()
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.3.0'
+        classpath 'com.android.tools.build:gradle:8.9.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
@@ -24,21 +24,13 @@ allprojects {
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
-//rootProject.allprojects {
-//    repositories {
-//        flatDir {
-//            dirs project(':m2m_plugin').file('aars')
-//        }
-//    }
-//}
-
 android {
     if (project.android.hasProperty("namespace")) {
         namespace 'com.orbweb.m2m_plugin'
     }
 
     //compileSdkVersion 33
-    compileSdk 33
+    compileSdk 35
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -51,6 +43,7 @@ android {
 
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
+        main.java.srcDirs += 'src/main/java'
         test.java.srcDirs += 'src/test/kotlin'
     }
 
@@ -60,7 +53,7 @@ android {
 
     dependencies {
         testImplementation 'org.jetbrains.kotlin:kotlin-test'
-        testImplementation 'org.mockito:mockito-core:5.0.0'
+        testImplementation 'org.mockito:mockito-core:5.12.0'
         implementation 'io.github.orbweb:libm2mkit:1.0.1'
     }
 
